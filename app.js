@@ -1,25 +1,34 @@
-const express = require('express')
-const logger = require('morgan')
-const cors = require('cors')
+const express = require("express");
+const logger = require("morgan");
+const cors = require("cors");
+require("dotenv").config();
 
-const contactsRouter = require('./routes/api/contacts')
+const contactsRouter = require("./routers/contactsRouter");
 
-const app = express()
+const app = express();
 
-const formatsLogger = app.get('env') === 'development' ? 'dev' : 'short'
+const formatsLogger = app.get("env") === "development" ? "dev" : "short";
 
-app.use(logger(formatsLogger))
-app.use(cors())
-app.use(express.json())
+const { connectMongo } = require("./src/db/connection");
+const { errorHandler } = require("./src/helpers/apiHelpers");
 
-app.use('/api/contacts', contactsRouter)
+app.use(logger(formatsLogger));
+app.use(cors());
+app.use(express.json());
 
-app.use((req, res) => {
-  res.status(404).json({ message: 'Not found' })
-})
+app.use("/api/contacts", contactsRouter);
+app.use(errorHandler);
 
-app.use((err, req, res, next) => {
-  res.status(500).json({ message: err.message })
-})
+const start = async () => {
+  try {
+    await connectMongo();
 
-module.exports = app
+    app.listen(process.env.PORT, () => {
+      console.log("Server running. Use our API on port: 3000");
+    });
+  } catch (error) {
+    process.exit(1);
+  }
+};
+
+start();
