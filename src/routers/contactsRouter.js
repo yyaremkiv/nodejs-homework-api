@@ -4,9 +4,10 @@ const router = express.Router();
 const {
   addContactValidation,
   updateContactStatusValidation,
-} = require("../src/middlewares/validationMiddleware");
+} = require("../middlewares/validationMiddleware");
 
-const { asyncWrapper } = require("../src/helpers/apiHelpers");
+const { authMiddleware } = require("../middlewares/authMiddleware");
+const { asyncWrapper } = require("../helpers/apiHelpers");
 
 const {
   listContactsController,
@@ -15,7 +16,9 @@ const {
   addContactController,
   updateContactController,
   updateContactStatusController,
-} = require("../src/controllers/contactsController");
+} = require("../controllers/contactsController");
+
+router.use(authMiddleware);
 
 router.get("/", asyncWrapper(listContactsController));
 router.get("/:id", asyncWrapper(getContactByIdController));
@@ -27,4 +30,4 @@ router.patch(
   asyncWrapper(updateContactStatusController)
 );
 router.delete("/:id", asyncWrapper(removeContactController));
-module.exports = router;
+module.exports = { contactsRouter: router };
