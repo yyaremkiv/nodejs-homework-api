@@ -32,4 +32,17 @@ module.exports = {
     }
     next();
   },
+
+  signValidation: (req, res, next) => {
+    const schema = Joi.object({
+      email: Joi.string().email().required(),
+      password: Joi.string().min(6).max(16).required(),
+    });
+
+    const validationResult = schema.validate(req.body);
+    if (validationResult.error) {
+      next(new ValidationError(validationResult.error.message));
+    }
+    next();
+  },
 };
