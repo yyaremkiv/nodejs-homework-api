@@ -1,14 +1,15 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const gravatar = require("gravatar");
-const path = require("path");
-const fs = require("fs/promises");
-const Jimp = require("jimp");
 const { Users } = require("../db/userModel");
 const {
   RegistrationConflictError,
   LoginAuthError,
 } = require("../helpers/errors");
+const {
+  avatarRenameAndSave,
+  avatarDelete,
+} = require("../helpers/avatarSaver.js");
 
 const signUp = async (email, password) => {
   if (await Users.exists({ email })) {
@@ -54,23 +55,27 @@ const current = async (_id) => {
   return user;
 };
 
-const avatarsDir = path.join(__dirname, "../../", "public", "avatars");
+const avatars = async (_id, token, pathAvatar) => {
+  const oldAvatarURL = await Users.findOne({ _id, token }, "avatarURL -_id");
 
-const avatars = async (_id, tempUpload, originalname) => {
-  const avatar = await Jimp.read(tempUpload);
-  avatar.resize(250, 250);
-  avatar.write(tempUpload);
+  if (oldAvatarURL.avatarURL) {
+    await avatarDelete(oldAvatarURL.avatarURL);
+  }
 
-  const filename = `${_id}${originalname}`;
+  const avatarURL = await avatarRenameAndSave(pathAvatar);
+  const updatedCurrentUserAvatar = await Users.findOneAndUpdate(
+    { _id, token },
+    { $set: { avatarURL } },
+    {
+      new: true,
+      projection: "avatarURL -_id",
+    }
+  );
 
-  console.log("service", filename);
-
-  const resultUpload = path.join(avatarsDir, filename);
-  await fs.rename(tempUpload, resultUpload);
-  const avatarURL = path.join("avatars", filename);
-  await Users.findByIdAndUpdate(_id, { avatarURL });
-
-  return avatarURL;
+  if (!updatedCurrentUserAvatar) {
+    throw new LoginAuthError("Not authorized");
+  }
+  return updatedCurrentUserAvatar;
 };
 
 module.exports = {

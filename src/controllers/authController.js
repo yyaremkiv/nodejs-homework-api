@@ -41,11 +41,14 @@ const currentController = async (req, res) => {
 
 const avatarsController = async (req, res) => {
   const { _id } = req.user;
-  const { path: tempUpload, originalname } = req.file;
+  const token = req.token;
+  const pathAvatar = req.file.path;
 
-  const avatar = await avatars(_id, tempUpload, originalname);
+  const { avatarURL } = await avatars(_id, token, pathAvatar);
 
-  res.status(200).json({ avatar, message: "Succerss" });
+  res.status(200).json({
+    avatarURL,
+  });
 };
 
 module.exports = {
