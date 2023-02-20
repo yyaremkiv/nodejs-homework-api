@@ -1,17 +1,23 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const gravatar = require("gravatar");
 const { Users } = require("../db/userModel");
 const {
   RegistrationConflictError,
   LoginAuthError,
 } = require("../helpers/errors");
+const {
+  avatarRenameAndSave,
+  avatarDelete,
+} = require("../helpers/avatarSaver.js");
 
 const signUp = async (email, password) => {
   if (await Users.exists({ email })) {
     throw new RegistrationConflictError("Email in use");
   }
+  const avatarURL = gravatar.url(email);
 
-  const contact = await Users.create({ email, password });
+  const contact = await Users.create({ email, password, avatarURL });
   return contact;
 };
 
@@ -49,9 +55,33 @@ const current = async (_id) => {
   return user;
 };
 
+const avatars = async (_id, token, pathAvatar) => {
+  const oldAvatarURL = await Users.findOne({ _id, token }, "avatarURL -_id");
+
+  if (oldAvatarURL.avatarURL) {
+    await avatarDelete(oldAvatarURL.avatarURL);
+  }
+
+  const avatarURL = await avatarRenameAndSave(pathAvatar);
+  const updatedCurrentUserAvatar = await Users.findOneAndUpdate(
+    { _id, token },
+    { $set: { avatarURL } },
+    {
+      new: true,
+      projection: "avatarURL -_id",
+    }
+  );
+
+  if (!updatedCurrentUserAvatar) {
+    throw new LoginAuthError("Not authorized");
+  }
+  return updatedCurrentUserAvatar;
+};
+
 module.exports = {
   signUp,
   login,
   logout,
   current,
+  avatars,
 };

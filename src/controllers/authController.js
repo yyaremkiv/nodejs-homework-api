@@ -1,4 +1,10 @@
-const { signUp, login, logout, current } = require("../services/authService");
+const {
+  signUp,
+  login,
+  logout,
+  current,
+  avatars,
+} = require("../services/authService");
 
 const signupController = async (req, res) => {
   const { email, password } = req.body;
@@ -33,9 +39,22 @@ const currentController = async (req, res) => {
   res.status(201).json({ user, message: "Succerss" });
 };
 
+const avatarsController = async (req, res) => {
+  const { _id } = req.user;
+  const token = req.token;
+  const pathAvatar = req.file.path;
+
+  const { avatarURL } = await avatars(_id, token, pathAvatar);
+
+  res.status(200).json({
+    avatarURL,
+  });
+};
+
 module.exports = {
   signupController,
   loginController,
   logoutController,
   currentController,
+  avatarsController,
 };
