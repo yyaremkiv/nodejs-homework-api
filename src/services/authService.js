@@ -1,6 +1,8 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const gravatar = require("gravatar");
+const { v4: uuid4 } = require("uuid");
+const sendEmail = require("../helpers/sendEmail");
 const { Users } = require("../db/userModel");
 const {
   RegistrationConflictError,
@@ -12,6 +14,19 @@ const {
 } = require("../helpers/avatarSaver.js");
 
 const signUp = async (email, password) => {
+  const verifyToken = uuid4();
+
+  try {
+    await sendEmail({ verifyToken, email });
+  } catch (err) {
+    throw new RegistrationConflictError("registration not complite");
+  }
+
+  const existEmail = await Users.findOne({ email });
+  if (existEmail) {
+    throw new RegistrationConflictError("Email in use");
+  }
+
   if (await Users.exists({ email })) {
     throw new RegistrationConflictError("Email in use");
   }
@@ -24,7 +39,11 @@ const signUp = async (email, password) => {
 const login = async (email, password) => {
   const user = await Users.findOne({ email });
 
-  if (!user || !(await bcrypt.compare(password, user.password))) {
+  if (
+    !user ||
+    !(await bcrypt.compare(password, user.password)) ||
+    !user.verify
+  ) {
     throw new LoginAuthError("Email or password is wrong");
   }
 
@@ -78,10 +97,39 @@ const avatars = async (_id, token, pathAvatar) => {
   return updatedCurrentUserAvatar;
 };
 
+const verifyUser = async (verifyToken) => {
+  const user = await Users.findOne({ verifyToken });
+  if (user) {
+    await user.updateOne({ verify: true, verifyToken: null });
+    return;
+  }
+  throw new RegistrationConflictError("User not found");
+};
+
+const repeateSendingMail = async ({ email }) => {
+  const user = await Users.findOne({ email });
+  if (user && !user.verify) {
+    try {
+      await sendEmail({ verifyToken: user.verifyToken, email });
+      return;
+    } catch (err) {
+      throw new RegistrationConflictError("registration not complite");
+    }
+  }
+  if (user && user.verify) {
+    throw new LoginAuthError("Verification has already been passed");
+  }
+  if (!user) {
+    throw new LoginAuthError("User not found");
+  }
+};
+
 module.exports = {
   signUp,
   login,
   logout,
   current,
   avatars,
+  verifyUser,
+  repeateSendingMail,
 };

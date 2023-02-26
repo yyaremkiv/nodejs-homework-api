@@ -4,6 +4,8 @@ const {
   logout,
   current,
   avatars,
+  verifyUser,
+  repeateSendingMail,
 } = require("../services/authService");
 
 const signupController = async (req, res) => {
@@ -51,10 +53,29 @@ const avatarsController = async (req, res) => {
   });
 };
 
+const veryfyRegistrationController = async (req, res) => {
+  const { verificationToken } = req.params;
+  await verifyUser(verificationToken);
+  res.status(200).json({
+    message: "Verification successful",
+  });
+};
+
+const repeatedVeryfyRegistrationController = async (req, res) => {
+  const { email } = req.body;
+  await repeateSendingMail({ email });
+
+  res.status(200).json({
+    message: "Verification email sent",
+  });
+};
+
 module.exports = {
   signupController,
   loginController,
   logoutController,
   currentController,
   avatarsController,
+  veryfyRegistrationController,
+  repeatedVeryfyRegistrationController,
 };
