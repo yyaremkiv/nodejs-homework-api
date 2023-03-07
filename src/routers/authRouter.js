@@ -1,6 +1,5 @@
 const express = require("express");
 const router = express.Router();
-// const multer = require("multer");
 const { upload } = require("../helpers/uploads");
 
 const { asyncWrapper } = require("../helpers/apiHelpers");
@@ -11,15 +10,29 @@ const {
   logoutController,
   currentController,
   avatarsController,
+  veryfyRegistrationController,
+  repeatedVeryfyRegistrationController,
 } = require("../controllers/authController");
 
-const { signValidation } = require("../middlewares/validationMiddleware");
+const {
+  signValidation,
+  repeatedVerifyValidation,
+} = require("../middlewares/validationMiddleware");
 const { authMiddleware } = require("../middlewares/authMiddleware");
 
 router.post("/signup", signValidation, asyncWrapper(signupController));
 router.post("/login", signValidation, asyncWrapper(loginController));
+router.post(
+  "/verify/",
+  repeatedVerifyValidation,
+  asyncWrapper(repeatedVeryfyRegistrationController)
+);
 router.get("/logout", authMiddleware, asyncWrapper(logoutController));
 router.get("/current", authMiddleware, asyncWrapper(currentController));
+router.get(
+  "/verify/:verificationToken",
+  asyncWrapper(veryfyRegistrationController)
+);
 router.patch(
   "/avatars",
   authMiddleware,
